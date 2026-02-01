@@ -67,3 +67,6 @@ https://github.com/newlinedeveloper/ecommerce-order-process-app/blob/main/README
 
 ## Curl
 curl -X POST https://8jfhx9ab4c.execute-api.ap-southeast-1.amazonaws.com/prod/orders -H "Content-Type: application/json" -d '{"product": "Laptop", "amount": 1500}'
+
+## Trail logs
+aws logs tail /aws/lambda/OrderLambda --follow

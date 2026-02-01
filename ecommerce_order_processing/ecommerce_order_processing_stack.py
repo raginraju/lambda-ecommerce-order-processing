@@ -35,38 +35,8 @@ class EcommerceOrderProcessingStack(Stack):
         order_lambda = _lambda.Function(
             self, "OrderLambda",
             runtime=_lambda.Runtime.PYTHON_3_11,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(
-                """
-import json, uuid, boto3, os
-
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['TABLE_NAME'])
-sfn = boto3.client('stepfunctions')
-
-def handler(event, context):
-    body = json.loads(event['body'])
-    order_id = str(uuid.uuid4())
-    item = {
-        "orderId": order_id,
-        "product": body['product'],
-        "amount": body['amount'],
-        "status": "PENDING"
-    }
-    table.put_item(Item=item)
-
-    # Trigger Step Functions
-    sfn.start_execution(
-        stateMachineArn=os.environ['STATE_MACHINE_ARN'],
-        input=json.dumps(item)
-    )
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps({"orderId": order_id, "status": "PROCESSING"})
-    }
-                """
-            )
+            handler="order_handler.handler",           # File name . Function name
+            code=_lambda.Code.from_asset("lambda")     # Path to the folder
         )
         orders_table.grant_write_data(order_lambda)
 
@@ -83,47 +53,16 @@ def handler(event, context):
         payment_lambda = _lambda.Function(
             self, "PaymentLambda",
             runtime=_lambda.Runtime.PYTHON_3_11,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(
-                """
-import random
-
-def handler(event, context):
-    # Simulated payment
-    if random.choice([True, False]):
-        return {"status": "SUCCESS", "orderId": event["orderId"]}
-    else:
-        return {"status": "FAILED", "orderId": event["orderId"]}
-                """
-            )
+            handler="payment_handler.handler",           # File name . Function name
+            code=_lambda.Code.from_asset("lambda")     # Path to the folder
         )
 
         # Lambda: Update Order Status
         update_lambda = _lambda.Function(
             self, "UpdateOrderStatusLambda",
             runtime=_lambda.Runtime.PYTHON_3_11,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(
-                """
-import boto3, os, json
-
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['TABLE_NAME'])
-
-def handler(event, context):
-    order_id = event["orderId"]
-    status = event["status"]
-
-    table.update_item(
-        Key={"orderId": order_id},
-        UpdateExpression="SET #s = :val",
-        ExpressionAttributeNames={"#s": "status"},
-        ExpressionAttributeValues={":val": status}
-    )
-
-    return {"orderId": order_id, "status": status}
-                """
-            )
+            handler="update_handler.handler",           # File name . Function name
+            code=_lambda.Code.from_asset("lambda")     # Path to the folder
         )
         orders_table.grant_write_data(update_lambda)
         update_lambda.add_environment("TABLE_NAME", orders_table.table_name)
