@@ -50,9 +50,20 @@ command.
 ## Useful commands
 
  * `cdk ls`          list all stacks in the app
+ * `cdk bootstrap`   For the firsttime only
  * `cdk synth`       emits the synthesized CloudFormation template
  * `cdk deploy`      deploy this stack to your default AWS account/region
  * `cdk diff`        compare deployed stack with current state
  * `cdk docs`        open CDK documentation
 
 Enjoy!
+
+
+
+
+## link to original project: 
+https://github.com/newlinedeveloper/ecommerce-order-process-app/blob/main/README.md
+
+
+## Curl
+curl -X POST https://8jfhx9ab4c.execute-api.ap-southeast-1.amazonaws.com/prod/orders -H "Content-Type: application/json" -d '{"product": "Laptop", "amount": 1500}'
