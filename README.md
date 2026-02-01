@@ -70,3 +70,9 @@ curl -X POST https://8jfhx9ab4c.execute-api.ap-southeast-1.amazonaws.com/prod/or
 
 ## Trail logs
 aws logs tail /aws/lambda/OrderLambda --follow
+
+## Create user (after we cdk deploy)
+aws cognito-idp sign-up --client-id <YOUR_CLIENT_ID>  --username testuser@example.com   --password Password123!
+
+## Login to get token
+aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id <YOUR_CLIENT_ID>  --auth-parameters USERNAME=testuser@example.com,PASSWORD=Password123!
