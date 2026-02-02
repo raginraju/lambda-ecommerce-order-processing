@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Outfit:wght@300;400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors */
+  --color-butcher-50: #fdf2f2;
+  --color-butcher-100: #fbe4e4;
+  --color-butcher-200: #f7cdcd;
+  --color-butcher-300: #f1a9a9;
+  --color-butcher-400: #e67979;
+  --color-butcher-500: #d64d4d;
+  --color-butcher-600: #c13535;
+  --color-butcher-700: #a22a2a;
+  --color-butcher-800: #862626; 
+  --color-butcher-900: #702424;
+  --color-butcher-950: #3d0f0f;
+
+  --color-earth-50: #f6f7f6;
+  --color-earth-100: #e3e7e3;
+  --color-earth-200: #c7d0c7;
+  --color-earth-500: #5b6b5b;
+  --color-earth-900: #2d322d;
+
+  /* Brand Typography */
+  --font-heading: "Playfair Display", serif;
+  --font-body: "Outfit", sans-serif;
+
+  /* Custom Animations */
+  --keyframes-slide-left: {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  };
+  --animation-slide-left: slide-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+
+@layer base {
+  body {
+    @apply font-body bg-earth-50 text-earth-900 antialiased;
+  }
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
