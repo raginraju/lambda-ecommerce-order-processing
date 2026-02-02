@@ -3,24 +3,25 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Home from './components/Home';
-import Products from './components/Products'; // New Import
+import Products from './components/Products'; 
 import { CartProvider } from './context/CartContext';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-earth-50">
-        <CartProvider>
-            <Routes>
+    /* Wrapping everything in the Provider is the "Professional Way" */
+    <CartProvider>
+      <Router>
+        <div className="min-h-screen bg-earth-50">
+          <Routes>
             <Route path="/" element={<Navigate to="/login" />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/products" element={<Products />} /> {/* New Route */}
-            </Routes>
-        </CartProvider>
-      </div>
-    </Router>
+            <Route path="/products" element={<Products />} />
+          </Routes>
+        </div>
+      </Router>
+    </CartProvider>
   );
 }
 
