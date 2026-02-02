@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # This links the job to your GitHub Environment rules (Manual Approval for prod)
+    # Links to GitHub Environment rules (Manual Approval for 'prod')
     environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'test' }}
     
     steps:
@@ -45,20 +45,26 @@ jobs:
             echo "STAGE=test" >> $GITHUB_ENV
           fi
 
-      # Step 1: Deploy Backend with context
-      # This creates/updates the AWS resources and saves the IDs to outputs.json
-      - name: Deploy Backend
-        run: cdk deploy -c stage=${{ env.STAGE }} --require-approval never --outputs-file outputs.json
+      # --- LAYERED DEPLOYMENT FLOW ---
 
-      # Step 2: Build Frontend using the actual IDs from the Backend deployment
+      # Step 1: Deploy Infrastructure ONLY
+      # This won't crash because it doesn't look for the 'dist' folder yet
+      - name: Deploy Infrastructure
+        run: |
+          cdk deploy "${{ env.STAGE }}-PoultryInfraStack" \
+            -c stage=${{ env.STAGE }} \
+            --require-approval never \
+            --outputs-file outputs.json
+
+      # Step 2: Build Frontend
+      # Now we have the real API_URL from the InfraStack outputs
       - name: Build Frontend
         run: |
-          # Extract variables from the JSON output using the dynamic stage name
-          API_URL=$(jq -r ".\"${{ env.STAGE }}-PoultryStack\".ApiUrl" outputs.json)
-          USER_POOL=$(jq -r ".\"${{ env.STAGE }}-PoultryStack\".UserPoolId" outputs.json)
-          CLIENT_ID=$(jq -r ".\"${{ env.STAGE }}-PoultryStack\".UserPoolClientId" outputs.json)
+          # Note: The stack name in jq must match exactly what is in app.py
+          API_URL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".ApiUrl" outputs.json)
+          USER_POOL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolId" outputs.json)
+          CLIENT_ID=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolClientId" outputs.json)
           
-          # Write the .env file for Vite
           echo "VITE_API_URL=$API_URL" > frontend/.env
           echo "VITE_COGNITO_USER_POOL_ID=$USER_POOL" >> frontend/.env
           echo "VITE_COGNITO_CLIENT_ID=$CLIENT_ID" >> frontend/.env
@@ -67,8 +73,10 @@ jobs:
           npm run build
           cd ..
 
-      # Step 3: Sync frontend assets to S3
-      # We use --hotswap here because the infrastructure is already updated; 
-      # we just need to push the new index.html and JS files.
-      - name: Deploy Assets
-        run: cdk deploy -c stage=${{ env.STAGE }} --require-approval never --hotswap
+      # Step 3: Deploy Frontend Assets
+      # This triggers the BucketDeployment now that the 'dist' folder exists
+      - name: Deploy Frontend Assets
+        run: |
+          cdk deploy "${{ env.STAGE }}-PoultryDeployStack" \
+            -c stage=${{ env.STAGE }} \
+            --require-approval never
