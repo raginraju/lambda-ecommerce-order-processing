@@ -7,7 +7,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Links to GitHub Environment rules (Manual Approval for 'prod')
     environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'test' }}
     
     steps:
@@ -45,22 +44,25 @@ jobs:
             echo "STAGE=test" >> $GITHUB_ENV
           fi
 
-      # --- LAYERED DEPLOYMENT FLOW ---
+      # --- START OF LAYERED DEPLOYMENT ---
 
-      # Step 1: Deploy Infrastructure ONLY
-      # This won't crash because it doesn't look for the 'dist' folder yet
+      # Step 1: Deploy Infrastructure (API, Auth, S3 Bucket)
       - name: Deploy Infrastructure
         run: |
+          # The "Mock" folder prevents synthesis errors
+          mkdir -p frontend/dist
+          touch frontend/dist/placeholder.txt
+          
+          # Use --exclusively to ignore the DeployStack for now
           cdk deploy "${{ env.STAGE }}-PoultryInfraStack" \
             -c stage=${{ env.STAGE }} \
             --require-approval never \
+            --exclusively \
             --outputs-file outputs.json
 
       # Step 2: Build Frontend
-      # Now we have the real API_URL from the InfraStack outputs
       - name: Build Frontend
         run: |
-          # Note: The stack name in jq must match exactly what is in app.py
           API_URL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".ApiUrl" outputs.json)
           USER_POOL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolId" outputs.json)
           CLIENT_ID=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolClientId" outputs.json)
@@ -73,10 +75,10 @@ jobs:
           npm run build
           cd ..
 
-      # Step 3: Deploy Frontend Assets
-      # This triggers the BucketDeployment now that the 'dist' folder exists
+      # Step 3: Deploy Frontend Assets to S3
       - name: Deploy Frontend Assets
         run: |
           cdk deploy "${{ env.STAGE }}-PoultryDeployStack" \
             -c stage=${{ env.STAGE }} \
-            --require-approval never
+            --require-approval never \
+            --exclusively
