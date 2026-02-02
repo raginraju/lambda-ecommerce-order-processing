@@ -69,12 +69,17 @@ def handler(event, context):
             )
         )
         
+        # Create the Authorizer
+        auth = apigateway.CognitoUserPoolsAuthorizer(self, "EcommerceAuthorizer",
+            cognito_user_pools=[user_pool]
+        )
+        
         # DynamoDB Orders Table
         orders_table = dynamodb.Table(
             self, "OrdersTable",
-            partition_key=dynamodb.Attribute(
-                name="orderId", type=dynamodb.AttributeType.STRING
-            )
+            partition_key=dynamodb.Attribute(name="userId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="orderId", type=dynamodb.AttributeType.STRING),
+            removal_policy=RemovalPolicy.DESTROY
         )
 
         # SNS Topic for Notifications
@@ -99,7 +104,30 @@ def handler(event, context):
             proxy=False
         )
         orders = api.root.add_resource("orders")
-        orders.add_method("POST")  # POST /orders
+        
+        orders.add_method("POST",  # POST /orders
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        # 1. Define the Lambda
+        list_orders_lambda = _lambda.Function(
+            self, "ListOrdersLambda",
+            runtime=_lambda.Runtime.PYTHON_3_11,
+            handler="list_orders_handler.handler",
+            code=_lambda.Code.from_asset("lambda"),
+            environment={"TABLE_NAME": orders_table.table_name}
+        )
+
+        # 2. Grant Read Permissions
+        orders_table.grant_read_data(list_orders_lambda)
+
+        # 3. Add GET method to your existing /orders resource
+        orders.add_method("GET", 
+            apigateway.LambdaIntegration(list_orders_lambda),
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
 
         # Lambda: Payment Processing
         payment_lambda = _lambda.Function(

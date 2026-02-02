@@ -76,3 +76,13 @@ aws cognito-idp sign-up --client-id <YOUR_CLIENT_ID>  --username testuser@exampl
 
 ## Login to get token
 aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id <YOUR_CLIENT_ID>  --auth-parameters USERNAME=testuser@example.com,PASSWORD=Password123!
+
+## Place order with token
+curl -X POST https://<your-api-id>.execute-api.ap-southeast-1.amazonaws.com/prod/orders \
+  -H "Authorization: <YOUR_ID_TOKEN_HERE>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product": "Mechanical Keyboard",
+    "amount": 150.00
+  }'
+
