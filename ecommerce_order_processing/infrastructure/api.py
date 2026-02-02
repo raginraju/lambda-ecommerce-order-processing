@@ -87,13 +87,17 @@ class PoultryApi(Construct):
         orders_table.grant_read_data(self.list_orders_lambda)
 
         # 5. API Gateway
-        api = apigateway.LambdaRestApi(
+        self.api_gateway = apigateway.LambdaRestApi(
             self, "OrderApi",
             handler=self.order_lambda,
-            proxy=False
+            proxy=False,
+            default_cors_preflight_options=apigateway.CorsOptions(
+                allow_origins=["*"], 
+                allow_methods=["GET", "POST", "OPTIONS"]
+            )
         )
         
-        orders_resource = api.root.add_resource("orders")
+        orders_resource = self.api_gateway.root.add_resource("orders")
         
         orders_resource.add_method("POST", 
             authorizer=authorizer,

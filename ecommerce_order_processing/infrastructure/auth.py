@@ -34,10 +34,10 @@ class PoultryAuth(Construct):
                 pre_sign_up=self.auto_confirm_lambda
             ),
             password_policy=cognito.PasswordPolicy(
-                min_length=8,
-                require_digits=True,
-                require_uppercase=True,
-                require_symbols=True
+                # min_length=6,
+                require_digits=False,
+                require_uppercase=False,
+                require_symbols=False
             ),
             standard_attributes=cognito.StandardAttributes(
                 email=cognito.StandardAttribute(required=True, mutable=False)
