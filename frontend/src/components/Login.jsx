@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, LogIn } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import cognitoClient from '../api/axiosClient';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Used to check if we were redirected from Checkout
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,8 +40,14 @@ const Login = () => {
       localStorage.setItem('accessToken', AccessToken);
       localStorage.setItem('refreshToken', RefreshToken);
 
+      // Determine where to send the user
+      // If location.state.from exists, it means the ProtectedRoute sent them here
+      const from = location.state?.from?.pathname || '/home';
+
       alert("Welcome back to The Block!");
-      navigate('/home');
+      
+      // Navigate to the original destination and clear login from the history stack
+      navigate(from, { replace: true });
       
     } catch (error) {
       const message = error.response?.data?.message || "Login failed. Please check your credentials.";

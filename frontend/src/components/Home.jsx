@@ -4,20 +4,18 @@ import {
   Search, 
   ChevronRight, 
   Star, 
-  Clock, 
-  MapPin, 
-  Plus 
+  MapPin 
 } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import CartDrawer from './CartDrawer';
+import ProductScroll from './ProductScroll'; // New Import
 
 const Home = () => {
   const { cartCount, addToCart } = useCart();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Data tailored to your Broiler Chicken project interest
   const featuredCuts = [
     { 
       id: "PROD-001", 
@@ -38,19 +36,17 @@ const Home = () => {
       name: "Fresh Chicken Wings", 
       price: 8.50, 
       unit: "pk", 
-      image: "https://images.unsplash.com/photo-1567622646635-b3ca821156b5?auto=format&fit=crop&w=400" 
+      image: "https://images.unsplash.com/photo-1606728035253-49e8a23146de?auto=format&fit=croop&w=400" 
     }
   ];
 
   const handleQuickAdd = (product) => {
-    // Default to 1kg and STANDARD_CUT for quick home-page adds
     addToCart(product, 1.0, "STANDARD_CUT");
   };
 
   return (
     <>
       <div className="min-h-screen pb-24 bg-earth-50">
-        {/* Navigation Header with Glassmorphism */}
         <nav className="glass-card sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-white">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/home')}>
             <div className="w-8 h-8 bg-butcher-700 rounded-lg rotate-3 flex items-center justify-center shadow-md">
@@ -61,12 +57,8 @@ const Home = () => {
           
           <div className="flex gap-4 items-center">
             <Search size={20} className="text-earth-400 cursor-not-allowed" />
-            <div 
-              className="relative cursor-pointer hover:scale-110 transition-transform" 
-              onClick={() => setIsCartOpen(true)}
-            >
+            <div className="relative cursor-pointer hover:scale-110 transition-transform" onClick={() => setIsCartOpen(true)}>
               <ShoppingCart size={22} className="text-earth-900" />
-              {/* Dynamic Badge using Cart Context */}
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-butcher-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white animate-pulse">
                   {cartCount}
@@ -76,7 +68,6 @@ const Home = () => {
           </div>
         </nav>
 
-        {/* Hero Section - Themed for Artisanal Poultry */}
         <section className="px-6 py-8">
           <div className="bg-earth-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
             <div className="relative z-10">
@@ -94,56 +85,19 @@ const Home = () => {
                 Shop Collection <ChevronRight size={16} />
               </button>
             </div>
-            {/* Background Aesthetic Blur */}
             <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-butcher-700/20 rounded-full blur-3xl"></div>
           </div>
         </section>
 
-        {/* Categories / Featured */}
-        <section className="px-6 py-4 flex justify-between items-end">
-          <div>
-            <h2 className="text-2xl font-black font-heading text-earth-900 uppercase tracking-tighter">Featured Cuts</h2>
-            <p className="text-earth-400 text-[10px] font-bold uppercase tracking-widest">Sourced from Local Farms</p>
-          </div>
-          <button 
-            onClick={() => navigate('/products')}
-            className="text-butcher-700 font-bold text-xs border-b-2 border-butcher-700 pb-0.5 uppercase tracking-tighter"
-          >
-            View All
-          </button>
-        </section>
+        {/* REUSABLE SCROLL COMPONENT */}
+        <ProductScroll 
+          title="Featured Cuts"
+          subtitle="Sourced from Local Farms"
+          items={featuredCuts}
+          onAdd={handleQuickAdd}
+          onViewAll={() => navigate('/products')}
+        />
 
-        {/* Horizontal Product Scroll */}
-        <section className="px-6 overflow-x-auto flex gap-6 no-scrollbar py-4">
-          {featuredCuts.map((cut) => (
-            <div key={cut.id} className="min-w-[220px] bg-white rounded-[2rem] p-4 shadow-xl shadow-earth-200/50 border border-white">
-              <div className="cursor-pointer group" onClick={() => navigate('/products')}>
-                <div className="overflow-hidden rounded-2xl mb-4 aspect-square">
-                  <img 
-                    src={cut.image} 
-                    alt={cut.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                  />
-                </div>
-                <h3 className="font-bold text-sm text-earth-900 uppercase tracking-tight">{cut.name}</h3>
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-butcher-700 font-black text-lg">
-                  ${cut.price.toFixed(2)} 
-                  <span className="text-[10px] text-earth-300 font-bold ml-1 uppercase tracking-tighter">/ {cut.unit}</span>
-                </span>
-                <button 
-                  onClick={() => handleQuickAdd(cut)}
-                  className="w-10 h-10 bg-earth-900 text-white rounded-2xl flex items-center justify-center hover:bg-butcher-700 transition-all active:scale-90 shadow-md"
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {/* Location & Standards Section - Specific to your context */}
         <section className="px-6 mt-10">
           <div className="glass-card rounded-[2rem] p-8 border-white shadow-2xl space-y-8">
             <h3 className="font-heading font-black text-2xl uppercase tracking-tighter">The Block Standards</h3>
@@ -176,11 +130,7 @@ const Home = () => {
         </section>
       </div>
 
-      {/* Cart Drawer Overlay */}
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-      />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 };
