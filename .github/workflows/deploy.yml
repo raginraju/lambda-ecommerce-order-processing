@@ -44,9 +44,7 @@ jobs:
             echo "STAGE=test" >> $GITHUB_ENV
           fi
 
-      # --- START OF LAYERED DEPLOYMENT ---
-
-      # Step 1: Deploy Infrastructure (API, Auth, S3 Bucket)
+      # Step 1: Deploy Infrastructure (API, Auth, and the two S3 Buckets)
       - name: Deploy Infrastructure
         run: |
           # The "Mock" folder prevents synthesis errors
@@ -60,22 +58,37 @@ jobs:
             --exclusively \
             --outputs-file outputs.json
 
-      # Step 2: Build Frontend
+      # Step 2: Build Frontend with CloudFront context
       - name: Build Frontend
         run: |
+          # Parse outputs from the JSON file
           API_URL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".ApiUrl" outputs.json)
           USER_POOL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolId" outputs.json)
           CLIENT_ID=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".UserPoolClientId" outputs.json)
+          CF_URL=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".CloudFrontURL" outputs.json)
           
+          # Inject into Vite environment
           echo "VITE_API_URL=$API_URL" > frontend/.env
           echo "VITE_COGNITO_USER_POOL_ID=$USER_POOL" >> frontend/.env
           echo "VITE_COGNITO_CLIENT_ID=$CLIENT_ID" >> frontend/.env
+          echo "VITE_CLOUDFRONT_URL=https://$CF_URL" >> frontend/.env
           
           cd frontend
           npm run build
           cd ..
 
-      # Step 3: Deploy Frontend Assets to S3
+      # Step 3: Sync Product Images to the dedicated Images Bucket
+      - name: Sync Product Images
+        run: |
+          # Grab the dynamic bucket name created by CDK
+          IMG_BUCKET=$(jq -r ".\"${{ env.STAGE }}-PoultryInfraStack\".ImagesBucketName" outputs.json)
+          
+          # Sync local /images folder to S3 with aggressive caching
+          aws s3 sync ./frontend/public/images s3://$IMG_BUCKET/images \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable"
+
+      # Step 4: Deploy Frontend Code (HTML/JS) to the UI Bucket
       - name: Deploy Frontend Assets
         run: |
           cdk deploy "${{ env.STAGE }}-PoultryDeployStack" \

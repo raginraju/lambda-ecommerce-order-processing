@@ -6,6 +6,7 @@ import Home from './components/Home';
 import Products from './components/Products'; 
 import ProtectedRoute from './components/ProtectedRoute'; // The wrapper we discussed
 import { CartProvider } from './context/CartContext';
+import NotFound from './components/NotFound';
 
 function App() {
   return (
@@ -33,6 +34,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            {/* 404 Catch-all: Must be the last Route */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
       </Router>

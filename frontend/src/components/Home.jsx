@@ -22,7 +22,7 @@ const Home = () => {
       name: "Whole Broiler Chicken", 
       price: 12.50, 
       unit: "kg", 
-      image: "https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=400" 
+      image: "/images/products/WHOLE_CHICKEN.jpg"
     },
     { 
       id: "PROD-002", 
