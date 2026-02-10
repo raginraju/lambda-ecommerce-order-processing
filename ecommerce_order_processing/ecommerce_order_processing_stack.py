@@ -20,6 +20,8 @@ class PoultryInfraStack(Stack):
         self.auth = PoultryAuth(self, f"{stage}-PoultryAuth")
         self.api = PoultryApi(self, f"{stage}-PoultryApi", 
             orders_table=self.db.orders_table, 
+            products_table=self.db.products_table,
+            products_bucket=self.images_bucket,
             authorizer=self.auth.authorizer
         )
 
@@ -72,6 +74,15 @@ class PoultryInfraStack(Stack):
             # This is the cost-optimizer: Aggressive caching for images
             cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED
         )
+        
+        # 5. ADD ADDITIONAL BEHAVIOR: For Data (JSON files)
+        self.distribution.add_behavior(
+            path_pattern="/data/*", # Any JSON or data files
+            origin=origins.S3BucketOrigin.with_origin_access_control(self.images_bucket),
+            viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            # Use CACHING_OPTIMIZED but we will "Invalidate" it via Lambda when prices change
+            cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED
+        )   
 
         # Outputs for the GitHub Actions / Frontend Build
         CfnOutput(self, "ApiUrl", value=self.api.api_gateway.url)

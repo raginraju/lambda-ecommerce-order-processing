@@ -6,12 +6,13 @@ from aws_cdk import (
     aws_sns_subscriptions as subs,
     aws_stepfunctions as sfn,
     aws_stepfunctions_tasks as tasks,
+    aws_iam as iam,
     CfnOutput
 )
 from constructs import Construct
 
 class PoultryApi(Construct):
-    def __init__(self, scope: Construct, id: str, orders_table, authorizer, **kwargs):
+    def __init__(self, scope: Construct, id: str, orders_table, products_table, products_bucket, distribution, authorizer, **kwargs):
         super().__init__(scope, id, **kwargs)
 
         # 1. Messaging (SNS)
@@ -85,7 +86,29 @@ class PoultryApi(Construct):
             environment={"TABLE_NAME": orders_table.table_name}
         )
         orders_table.grant_read_data(self.list_orders_lambda)
-
+        
+        self.update_pricing_lambda = _lambda.Function(
+            self, "UpdatePricingLambda",
+            runtime=_lambda.Runtime.PYTHON_3_11,
+            handler="update_pricing_handler.lambda_handler",
+            code=_lambda.Code.from_asset("lambda"),
+            environment={
+                "PRODUCTS_TABLE_NAME": products_table.table_name,
+                "PRODUCTS_BUCKET_NAME": products_bucket.bucket_name,
+                "CLOUDFRONT_DISTRIBUTION_ID": distribution.distribution_id,
+                "ADMIN_EMAIL": "avinmraju@example.com"
+            }
+        )
+        
+        products_table.grant_read_write_data(self.update_pricing_lambda)
+        products_bucket.grant_write(self.update_pricing_lambda)
+        
+        # Grant permission to invalidate CloudFront cache
+        self.update_pricing_lambda.add_to_role_policy(iam.PolicyStatement(
+            actions=["cloudfront:CreateInvalidation"],
+            resources=[f"arn:aws:cloudfront::*:distribution/{distribution.distribution_id}"]
+        ))
+        
         # 5. API Gateway
         self.api_gateway = apigateway.LambdaRestApi(
             self, "OrderApi",
@@ -109,3 +132,14 @@ class PoultryApi(Construct):
             authorizer=authorizer,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
+        
+        # update-pricing resource admin
+        pricing_resource = self.api_gateway.root.add_resource("update-pricing")
+        pricing_resource.add_method("POST", 
+            apigateway.LambdaIntegration(self.update_pricing_lambda),
+            authorizer=authorizer,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+
+        # --- NEW: Outputs for your Frontend .env ---
+        CfnOutput(self, "CloudFrontDomain", value=distribution.domain_name)

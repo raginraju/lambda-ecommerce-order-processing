@@ -1,42 +1,47 @@
-import React, { useState } from 'react';
-import { ChevronRight, Star, MapPin } from 'lucide-react'; 
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Star, MapPin, Loader2 } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Navbar from './Navbar';
 import CartDrawer from './CartDrawer';
 import ProductScroll from './ProductScroll';
+import axios from 'axios';
 
 const Home = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // State for dynamic products and loading status
+  const [featuredCuts, setFeaturedCuts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const featuredCuts = [
-    { 
-      id: "PROD-001", 
-      name: "Whole Broiler Chicken", 
-      price: 12.50, 
-      unit: "kg", 
-      image: "/images/products/WHOLE_CHICKEN.jpg"
-    },
-    { 
-      id: "PROD-002", 
-      name: "Premium Biryani Cut", 
-      price: 14.00, 
-      unit: "kg", 
-      image: "https://images.unsplash.com/photo-1606728035253-49e8a23146de?auto=format&fit=crop&w=400" 
-    },
-    { 
-      id: "PROD-003", 
-      name: "Fresh Chicken Wings", 
-      price: 8.50, 
-      unit: "pk", 
-      image: "https://images.unsplash.com/photo-1567622646635-b3ca821156b5?auto=format&fit=crop&w=400" 
-    }
-  ];
+  // Fetch product data from CloudFront on component mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // This targets your Images Bucket via the CloudFront /data/* behavior
+        const response = await axios.get('/data/products.json');
+        
+        // Pick the top 3 items for the homepage featured section
+        setFeaturedCuts(response.data.slice(0, 3));
+      } catch (error) {
+        console.error("Failed to load products from CloudFront:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const handleQuickAdd = (product) => {
-    addToCart(product, 1.0, "STANDARD_CUT");
+    // Uses the first available cut option if it exists, else defaults to STANDARD_CUT
+    const defaultCut = product.cuts && product.cuts.length > 0 
+      ? product.cuts[0] 
+      : "STANDARD_CUT";
+      
+    addToCart(product, 1.0, defaultCut);
   };
 
   return (
@@ -67,14 +72,21 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Featured Cuts Horizontal Scroll */}
-        <ProductScroll 
-          title="Featured Cuts"
-          subtitle="Sourced from Local Farms"
-          items={featuredCuts}
-          onAdd={handleQuickAdd}
-          onViewAll={() => navigate('/products')}
-        />
+        {/* Featured Cuts Horizontal Scroll with Loading Logic */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-20 gap-4">
+            <Loader2 className="animate-spin text-butcher-700" size={40} />
+            <p className="text-earth-400 font-bold uppercase tracking-widest text-[10px]">Loading Fresh Stock...</p>
+          </div>
+        ) : (
+          <ProductScroll 
+            title="Featured Cuts"
+            subtitle="Sourced from Local Farms"
+            items={featuredCuts}
+            onAdd={handleQuickAdd}
+            onViewAll={() => navigate('/products')}
+          />
+        )}
 
         {/* Brand Standards Section */}
         <section className="px-6 mt-10">

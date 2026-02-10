@@ -64,7 +64,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!user,
-    loading
+    loading,
+    getToken: () => Cookies.get('idToken')
   };
 
   return (
