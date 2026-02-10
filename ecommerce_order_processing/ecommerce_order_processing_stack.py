@@ -15,16 +15,6 @@ class PoultryInfraStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, stage: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Core Services
-        self.db = PoultryDatabase(self, f"{stage}-PoultryData")
-        self.auth = PoultryAuth(self, f"{stage}-PoultryAuth")
-        self.api = PoultryApi(self, f"{stage}-PoultryApi", 
-            orders_table=self.db.orders_table, 
-            products_table=self.db.products_table,
-            products_bucket=self.images_bucket,
-            authorizer=self.auth.authorizer
-        )
-
         # 1. BUCKET FOR UI (HTML/JS/CSS)
         self.site_bucket = s3.Bucket(self, "PoultryUIBucket",
             bucket_name=f"{stage}-poultry-shop-ui-{self.account}",
@@ -40,6 +30,11 @@ class PoultryInfraStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True
         )
+        
+        # 2. CORE SERVICES (Database & Auth)
+        self.db = PoultryDatabase(self, f"{stage}-PoultryData")
+        self.auth = PoultryAuth(self, f"{stage}-PoultryAuth")
+        
 
         # 3. SINGLE CLOUDFRONT DISTRIBUTION (The "Shield")
         self.distribution = cloudfront.Distribution(self, "PoultryCombinedDist",
@@ -83,6 +78,15 @@ class PoultryInfraStack(Stack):
             # Use CACHING_OPTIMIZED but we will "Invalidate" it via Lambda when prices change
             cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED
         )   
+        
+        # 5. NOW CREATE THE API (All dependencies now exist)
+        self.api = PoultryApi(self, f"{stage}-PoultryApi", 
+            orders_table=self.db.orders_table, 
+            products_table=self.db.products_table,
+            products_bucket=self.images_bucket,
+            distribution=self.distribution,
+            authorizer=self.auth.authorizer
+        )
 
         # Outputs for the GitHub Actions / Frontend Build
         CfnOutput(self, "ApiUrl", value=self.api.api_gateway.url)
