@@ -18,10 +18,12 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/products`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/data/products.json`);
         setProducts(response.data);
       } catch (error) {
         console.error("Error fetching products:", error);
+        const fallback = await axios.get(`${import.meta.env.VITE_API_URL}/products`);
+        setProducts(fallback.data);
       } finally {
         setIsLoading(false);
       }
@@ -51,10 +53,10 @@ const AdminDashboard = () => {
 
       await axios.post(
         `${import.meta.env.VITE_API_URL}/update-pricing`, 
-        { products },
+        { products: products },
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }

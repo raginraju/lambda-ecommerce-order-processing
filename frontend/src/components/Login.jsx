@@ -57,9 +57,16 @@ const Login = () => {
       // This is the "magic" line that updates the Navbar and Cookies
       login(userData, tokens);
 
+      // 4. Smart Redirect Logic
+      // We manually peek at the token just for the redirect decision
+      const decoded = JSON.parse(atob(IdToken.split('.')[1]));
+      const isAdmin = decoded['cognito:groups']?.includes('Admins');
+
       // 4. Redirect Logic
       // If the user was trying to go to /checkout, send them back there.
-      const from = location.state?.from?.pathname || '/home';
+      // Priority: 1. Where they were trying to go, 2. Admin Dashboard (if admin), 3. Home
+      const defaultPath = isAdmin ? '/admin' : '/home';
+      const from = location.state?.from?.pathname || defaultPath;
       navigate(from, { replace: true });
       
     } catch (error) {

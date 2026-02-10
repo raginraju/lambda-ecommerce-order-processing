@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShoppingCart, Search, User, LogOut, Settings, ChevronDown, LogIn } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Settings, ChevronDown, LogIn, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard icon
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext'; // Import your new hook
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ onOpenCart }) => {
   const { cartCount } = useCart();
-  const { user, logout, isAuthenticated } = useAuth(); // Use context instead of local state
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -54,9 +54,8 @@ const Navbar = ({ onOpenCart }) => {
           )}
         </div>
 
-        {/* AUTH CONDITIONAL RENDERING - Driven by AuthContext */}
+        {/* AUTH CONDITIONAL RENDERING */}
         {isAuthenticated ? (
-          /* SHOW: Profile Dropdown when Logged In */
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -71,10 +70,22 @@ const Navbar = ({ onOpenCart }) => {
             {isProfileOpen && (
               <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-earth-100 py-2 z-[60] animate-in fade-in zoom-in duration-200 origin-top-right">
                 <div className="px-4 py-2 border-b border-earth-50 mb-1">
-                  <p className="text-[10px] font-bold text-earth-400 uppercase tracking-widest">Customer</p>
-                  {/* Displays real name from Cookie/Context */}
-                  <p className="text-sm font-black text-earth-900 truncate">{user?.name || 'Avin M. Raju'}</p>
+                  {/* DYNAMIC LABEL: Shows 'Admin' if the user is in the group */}
+                  <p className="text-[10px] font-bold text-butcher-600 uppercase tracking-widest">
+                    {user?.isAdmin ? 'Administrator' : 'Customer'}
+                  </p>
+                  <p className="text-sm font-black text-earth-900 truncate">{user?.name || 'GUEST'}</p>
                 </div>
+
+                {/* 1. SECRET ADMIN LINK: Only visible if isAdmin is true */}
+                {user?.isAdmin && (
+                  <button 
+                    onClick={() => { navigate('/admin'); setIsProfileOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-butcher-700 bg-butcher-50/50 hover:bg-butcher-50 transition-colors border-b border-earth-50"
+                  >
+                    <LayoutDashboard size={16} /> Admin Dashboard
+                  </button>
+                )}
 
                 <button 
                   onClick={() => { navigate('/account'); setIsProfileOpen(false); }}
@@ -93,7 +104,6 @@ const Navbar = ({ onOpenCart }) => {
             )}
           </div>
         ) : (
-          /* SHOW: Login Button when Logged Out */
           <button 
             onClick={() => navigate('/login')}
             className="flex items-center gap-2 px-5 py-2.5 bg-earth-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-butcher-700 transition-all active:scale-95 shadow-md"

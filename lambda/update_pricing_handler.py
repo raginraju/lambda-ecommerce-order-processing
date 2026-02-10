@@ -10,25 +10,28 @@ cf = boto3.client('cloudfront')
 # Config from Environment Variables
 BUCKET_NAME = os.environ.get('PRODUCTS_BUCKET_NAME')
 DISTRIBUTION_ID = os.environ.get('CLOUDFRONT_DISTRIBUTION_ID')
-ADMIN_EMAIL = "avinmraju@example.com" 
 
 def lambda_handler(event, context):
     """
     Handles daily price updates for The Block.
-    Saves product JSON to S3 and invalidates CloudFront cache.
+    Verifies Admin group membership, saves to S3, and clears CloudFront cache.
     """
     try:
-        # 1. Identity Verification (via Cognito Claims)
+        # 1. Identity & Role Verification (via Cognito Groups)
         authorizer = event.get('requestContext', {}).get('authorizer', {})
         claims = authorizer.get('claims', {})
-        authenticated_email = claims.get('email')
-
-        if authenticated_email != ADMIN_EMAIL:
+        
+        # Cognito groups can come as a string or a list in the claims
+        user_groups = claims.get('cognito:groups', "")
+        
+        # Security Gate: Check if the user is part of the 'Admins' group
+        if "Admins" not in user_groups:
+            authenticated_email = claims.get('email', 'Unknown User')
             print(f"SECURITY ALERT: Unauthorized update attempt by {authenticated_email}")
             return {
                 'statusCode': 403,
                 'headers': get_cors_headers(),
-                'body': json.dumps({'message': 'Access Denied: Invalid Admin Identity'})
+                'body': json.dumps({'message': 'Access Denied: Admin privileges required'})
             }
 
         # 2. Parse and Validate incoming data
@@ -39,10 +42,11 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 400,
                 'headers': get_cors_headers(),
-                'body': json.dumps({'message': 'Invalid Payload format'})
+                'body': json.dumps({'message': 'Invalid Payload format: Expected list of products'})
             }
 
         # 3. Publish to S3 with 24-hour Cache Headers
+        # Note: We use data/products.json to match your CloudFront behavior
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key='data/products.json',
@@ -51,8 +55,8 @@ def lambda_handler(event, context):
             CacheControl='max-age=86400, public'
         )
 
-        # 4. NEW: Invalidate CloudFront Cache
-        # This forces the CDN to fetch the fresh file from S3 immediately
+        # 4. Invalidate CloudFront Cache
+        # This forces the Singapore Edge locations to dump the old JSON
         cf.create_invalidation(
             DistributionId=DISTRIBUTION_ID,
             InvalidationBatch={
@@ -68,7 +72,8 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'headers': get_cors_headers(),
             'body': json.dumps({
-                'message': 'Pantry prices updated and cache cleared successfully.',
+                'message': 'Pricing updated and CDN cache invalidated.',
+                'admin': claims.get('email'),
                 'timestamp': context.aws_request_id
             })
         }
@@ -82,6 +87,7 @@ def lambda_handler(event, context):
         }
 
 def get_cors_headers():
+    # In production, replace '*' with your specific CloudFront URL
     return {
         'Access-Control-Allow-Origin': '*', 
         'Access-Control-Allow-Headers': 'Content-Type,Authorization',

@@ -42,6 +42,9 @@ class PoultryAuth(Construct):
             standard_attributes=cognito.StandardAttributes(
                 email=cognito.StandardAttribute(required=True, mutable=False)
             ),
+            custom_attributes={
+                "isAdmin": cognito.StringAttribute(mutable=True)
+            },
             removal_policy=RemovalPolicy.DESTROY 
         )
 
@@ -55,4 +58,13 @@ class PoultryAuth(Construct):
         self.authorizer = apigateway.CognitoUserPoolsAuthorizer(
             self, "EcommerceAuthorizer",
             cognito_user_pools=[self.user_pool]
+        )
+        # 5. Create the Admin Group
+        # We use CfnUserPoolGroup because it's the direct L1 construct for groups
+        self.admin_group = cognito.CfnUserPoolGroup(
+            self, "AdminGroup",
+            user_pool_id=self.user_pool.user_pool_id,
+            group_name="Admins",
+            description="Users with access to the Admin Dashboard and pricing updates",
+            precedence=1 # Lower number = higher priority
         )

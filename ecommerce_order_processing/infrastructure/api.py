@@ -96,7 +96,6 @@ class PoultryApi(Construct):
                 "PRODUCTS_TABLE_NAME": products_table.table_name,
                 "PRODUCTS_BUCKET_NAME": products_bucket.bucket_name,
                 "CLOUDFRONT_DISTRIBUTION_ID": distribution.distribution_id,
-                "ADMIN_EMAIL": "avinmraju@example.com"
             }
         )
         
