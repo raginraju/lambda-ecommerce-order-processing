@@ -2,14 +2,17 @@ import json
 import boto3
 import os
 import time
+from decimal import Decimal
 
 # Initialize AWS Clients
 s3 = boto3.client('s3')
 cf = boto3.client('cloudfront')
+dynamodb = boto3.resource('dynamodb') # Added DynamoDB Resource
 
 # Config from Environment Variables
 BUCKET_NAME = os.environ.get('PRODUCTS_BUCKET_NAME')
 DISTRIBUTION_ID = os.environ.get('CLOUDFRONT_DISTRIBUTION_ID')
+TABLE_NAME = os.environ.get('PRODUCTS_TABLE_NAME') # Added Table Name
 
 def lambda_handler(event, context):
     """
@@ -17,17 +20,12 @@ def lambda_handler(event, context):
     Verifies Admin group membership, saves to S3, and clears CloudFront cache.
     """
     try:
-        # 1. Identity & Role Verification (via Cognito Groups)
+        # 1. Identity & Role Verification
         authorizer = event.get('requestContext', {}).get('authorizer', {})
         claims = authorizer.get('claims', {})
-        
-        # Cognito groups can come as a string or a list in the claims
         user_groups = claims.get('cognito:groups', "")
         
-        # Security Gate: Check if the user is part of the 'Admins' group
         if "Admins" not in user_groups:
-            authenticated_email = claims.get('email', 'Unknown User')
-            print(f"SECURITY ALERT: Unauthorized update attempt by {authenticated_email}")
             return {
                 'statusCode': 403,
                 'headers': get_cors_headers(),
@@ -39,32 +37,44 @@ def lambda_handler(event, context):
         products = body.get('products')
 
         if not products or not isinstance(products, list):
-            return {
-                'statusCode': 400,
-                'headers': get_cors_headers(),
-                'body': json.dumps({'message': 'Invalid Payload format: Expected list of products'})
-            }
+            return { 'statusCode': 400, 'headers': get_cors_headers(), 'body': json.dumps({'message': 'Invalid Payload'}) }
 
-        # 3. Publish to S3 with 24-hour Cache Headers
-        # Note: We use data/products.json to match your CloudFront behavior
+        # 3. SAVE TO DYNAMODB (The missing piece)
+        table = dynamodb.Table(TABLE_NAME)
+        
+        # Use a batch writer for efficiency
+        with table.batch_writer() as batch:
+            for product in products:
+                batch.put_item(
+                    Item={
+                        'id': str(product['id']),
+                        'name': str(product['name']),
+                        # DynamoDB requires Decimal for numbers, not Float
+                        'price': Decimal(str(product['price'])), 
+                        'unit': str(product['unit']),
+                        'category': str(product.get('category', 'General')),
+                        'image': str(product['image']),
+                        'cuts': product.get('cuts', []),
+                        'stock': product.get('stock', True),
+                        'updatedAt': int(time.time())
+                    }
+                )
+        print(f"Successfully synced {len(products)} items to DynamoDB table: {TABLE_NAME}")
+
+        # 4. Save to S3
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key='data/products.json',
             Body=json.dumps(products),
-            ContentType='application/json',
-            CacheControl='max-age=86400, public'
+            ContentType='application/json'
         )
 
-        # 4. Invalidate CloudFront Cache
-        # This forces the Singapore Edge locations to dump the old JSON
+        # 5. Invalidate CloudFront
         cf.create_invalidation(
             DistributionId=DISTRIBUTION_ID,
             InvalidationBatch={
-                'Paths': {
-                    'Quantity': 1,
-                    'Items': ['/data/products.json']
-                },
-                'CallerReference': f"update-{int(time.time())}" # Unique ID for the request
+                'Paths': {'Quantity': 1, 'Items': ['/data/products.json']},
+                'CallerReference': f"update-{int(time.time())}"
             }
         )
 
@@ -83,7 +93,7 @@ def lambda_handler(event, context):
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),
-            'body': json.dumps({'message': 'Internal Server Error'})
+            'body': json.dumps({'message': f'Server Error: {str(e)}'})
         }
 
 def get_cors_headers():
