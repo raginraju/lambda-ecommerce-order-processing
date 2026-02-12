@@ -20,13 +20,21 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // This targets your Images Bucket via the CloudFront /data/* behavior
         const response = await axios.get('/data/products.json');
         
-        // Pick the top 3 items for the homepage featured section
-        setFeaturedCuts(response.data.slice(0, 3));
+        // DEFENSIVE CHECK: Ensure we are dealing with an array
+        const data = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.products; // Fallback if you wrapped it in a "products" key
+
+        if (data) {
+          setFeaturedCuts(data.slice(0, 3));
+        } else {
+          setFeaturedCuts([]); // Fallback to empty array
+        }
       } catch (error) {
         console.error("Failed to load products from CloudFront:", error);
+        setFeaturedCuts([]); // Ensure it stays an array on error
       } finally {
         setLoading(false);
       }
