@@ -124,7 +124,7 @@ const Home = () => {
                 <div>
                   <p className="font-black text-earth-900 text-sm uppercase tracking-tight">Local Delivery</p>
                   <p className="text-xs text-earth-400 leading-relaxed font-medium">
-                    Serving the Bendemeer community with fresh cuts delivered directly to your kitchen.
+                    Serving the Thrissur community with fresh cuts delivered directly to your kitchen.
                   </p>
                 </div>
               </div>

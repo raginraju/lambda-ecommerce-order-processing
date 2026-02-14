@@ -90,7 +90,7 @@ const Signup = () => {
           <div className="flex items-start gap-3 p-4 bg-earth-100/50 rounded-2xl border border-earth-100">
             <ShieldCheck className="text-butcher-600 shrink-0" size={20} />
             <p className="text-[10px] leading-tight text-earth-500 font-medium">
-              By joining, you agree to receive updates on our fresh broiler chicken stock in Bendemeer.
+              By joining, you agree to receive updates on our fresh broiler chicken stock in Thrissur.
             </p>
           </div>
 
