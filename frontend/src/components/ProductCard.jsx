@@ -1,34 +1,41 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react'; // Import the icon
 
-const ProductCard = ({ product, onAdd, onClick }) => {
+const ProductCard = ({ product, onAdd }) => {
   return (
-    <div className="min-w-[220px] bg-white rounded-[2rem] p-4 shadow-xl shadow-earth-200/50 border border-white">
-      <div className="cursor-pointer group" onClick={onClick}>
-        <div className="overflow-hidden rounded-2xl mb-4 aspect-square">
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-          />
-        </div>
-        <h3 className="font-bold text-sm text-earth-900 uppercase tracking-tight line-clamp-1">
-          {product.name}
-        </h3>
+    <div className="w-64 shrink-0 glass-card rounded-[2rem] p-5 bg-white shadow-xl border-white hover:scale-[1.02] transition-transform">
+      {/* Product Image */}
+      <div className="relative h-40 w-full mb-4 overflow-hidden rounded-2xl">
+        <img 
+          src={product.image} 
+          alt={product.name} 
+          className="w-full h-full object-cover"
+        />
       </div>
-      
-      <div className="flex justify-between items-center mt-3">
-        <span className="text-butcher-700 font-black text-lg">
-          ${product.price.toFixed(2)} 
-          <span className="text-[10px] text-earth-300 font-bold ml-1 uppercase tracking-tighter">
-            / {product.unit}
+
+      {/* Product Info */}
+      <h3 className="font-black uppercase tracking-tight text-earth-900 text-lg mb-1">
+        {product.name}
+      </h3>
+      <p className="text-earth-400 text-[10px] font-bold uppercase tracking-widest mb-4 italic">
+        {product.category || 'Premium Cut'}
+      </p>
+
+      {/* Price and Add Button */}
+      <div className="flex items-center justify-between mt-auto">
+        <div>
+          <span className="text-2xl font-black text-butcher-700">
+            ${product.price}
           </span>
-        </span>
+          <span className="text-[10px] font-bold text-earth-400 block -mt-1 uppercase">/kg</span>
+        </div>
+        
+        {/* THE CHANGE: Add the ShoppingCart button here */}
         <button 
           onClick={() => onAdd(product)}
-          className="w-10 h-10 bg-earth-900 text-white rounded-2xl flex items-center justify-center hover:bg-butcher-700 transition-all active:scale-90 shadow-md"
+          className="bg-earth-900 text-white p-3.5 rounded-2xl shadow-lg active:scale-90 transition-all hover:bg-butcher-800"
         >
-          <Plus size={20} />
+          <ShoppingCart size={18} strokeWidth={2.5} />
         </button>
       </div>
     </div>

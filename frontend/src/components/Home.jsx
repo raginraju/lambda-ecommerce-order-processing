@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Star, MapPin, Loader2 } from 'lucide-react'; 
+import { ChevronRight, Star, MapPin, Loader2, ShoppingCart } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Navbar from './Navbar';
@@ -8,10 +8,12 @@ import ProductScroll from './ProductScroll';
 import axios from 'axios';
 
 
+
 const Home = () => {
-  const { addToCart } = useCart();
+  const { addToCart, cartCount } = useCart();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
   const isLocal = window.location.hostname === 'localhost';
 
   // Get the URL directly from Vite's env
@@ -34,7 +36,7 @@ const Home = () => {
           ? response.data 
           : response.data?.products;
   
-        setFeaturedCuts(data ? data.slice(0, 3) : []);
+        setFeaturedCuts(data || []);
       } catch (error) {
         console.error("Failed to load products:", error);
         setFeaturedCuts([]);
