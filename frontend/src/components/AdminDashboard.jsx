@@ -14,12 +14,15 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const cdnUrl = import.meta.env.VITE_CDN_URL || '';
+
   // 1. Initial Fetch with Defensive Logic
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         // Fetching from CloudFront path
-        const response = await axios.get('/data/products.json');
+        
+        const response = await axios.get(`${cdnUrl}/data/products.json`);
         
         // Ensure data is an array (handles direct arrays or wrapped { products: [] } objects)
         const data = Array.isArray(response.data) 

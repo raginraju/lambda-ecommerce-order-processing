@@ -9,11 +9,14 @@ from constructs import Construct
 from ecommerce_order_processing.infrastructure.database import PoultryDatabase
 from ecommerce_order_processing.infrastructure.auth import PoultryAuth
 from ecommerce_order_processing.infrastructure.api import PoultryApi
-
+import os
 # --- STACK 1: INFRASTRUCTURE (The "Heavy" stuff) ---
 class PoultryInfraStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, stage: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+        
+        #pull from environment, or use a safe default for development
+        cdn_url = os.environ.get("VITE_CDN_URL")
 
         # 1. BUCKET FOR UI (HTML/JS/CSS)
         self.site_bucket = s3.Bucket(self, "PoultryUIBucket",
@@ -28,7 +31,18 @@ class PoultryInfraStack(Stack):
             bucket_name=f"{stage}-poultry-shop-images-{self.account}",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.DESTROY,
-            auto_delete_objects=True
+            auto_delete_objects=True,
+            cors=[
+                s3.CorsRule(
+                    allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.HEAD],
+                    allowed_origins=[
+                        "http://localhost:5173", # For local development
+                        cdn_url if cdn_url else "*" # Your CloudFront URL
+                    ],
+                    allowed_headers=["*"],
+                    exposed_headers=["ETag"]
+                )
+            ]
         )
         
         # 2. CORE SERVICES (Database & Auth)
@@ -74,6 +88,7 @@ class PoultryInfraStack(Stack):
         self.distribution.add_behavior(
             path_pattern="/data/*", # Any JSON or data files
             origin=origins.S3BucketOrigin.with_origin_access_control(self.images_bucket),
+            origin_request_policy=cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN,
             viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             # Use CACHING_OPTIMIZED but we will "Invalidate" it via Lambda when prices change
             cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED

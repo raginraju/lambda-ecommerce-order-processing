@@ -7,39 +7,41 @@ import CartDrawer from './CartDrawer';
 import ProductScroll from './ProductScroll';
 import axios from 'axios';
 
+
 const Home = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const isLocal = window.location.hostname === 'localhost';
+
+  // Get the URL directly from Vite's env
+  // If Vite is in 'development' mode, it uses .env.local; in 'production', it uses .env.production
+  const cdnUrl = import.meta.env.VITE_CDN_URL || '';
   
   // State for dynamic products and loading status
   const [featuredCuts, setFeaturedCuts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch product data from CloudFront on component mount
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('/data/products.json');
+        // 2. Use the variable directly. 
+        // In Dev, it's https://d3fxvx62oe0ul5.cloudfront.net
+        // In Prod, it can be empty '' to use relative paths
+        const response = await axios.get(`${cdnUrl}/data/products.json`);
         
-        // DEFENSIVE CHECK: Ensure we are dealing with an array
         const data = Array.isArray(response.data) 
           ? response.data 
-          : response.data.products; // Fallback if you wrapped it in a "products" key
-
-        if (data) {
-          setFeaturedCuts(data.slice(0, 3));
-        } else {
-          setFeaturedCuts([]); // Fallback to empty array
-        }
+          : response.data?.products;
+  
+        setFeaturedCuts(data ? data.slice(0, 3) : []);
       } catch (error) {
-        console.error("Failed to load products from CloudFront:", error);
-        setFeaturedCuts([]); // Ensure it stays an array on error
+        console.error("Failed to load products:", error);
+        setFeaturedCuts([]);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
