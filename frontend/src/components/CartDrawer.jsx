@@ -21,7 +21,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
     } else {
       // If logged in, proceed to actual checkout
       alert("Redirecting to secure portal...");
-      // navigate('/checkout'); 
+      navigate('/checkout'); 
     }
   };
 

@@ -4,12 +4,15 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Home from './components/Home';
 import Products from './components/Products'; 
-import AdminDashboard from './components/AdminDashboard'; // Import the new Admin UI
+import AdminDashboard from './components/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import NotFound from './components/NotFound';
 import AdminRoute from './components/AdminRoute';
+
+// Fixed Import: Ensure the path matches your new folder structure
+import Checkout from './components/checkout/Checkout';
 
 function App() {
   return (
@@ -30,7 +33,7 @@ function App() {
                 path="/checkout" 
                 element={
                   <ProtectedRoute>
-                    <div>Proceed to Payment</div> 
+                    <Checkout /> 
                   </ProtectedRoute>
                 } 
               />
