@@ -1,13 +1,12 @@
 import React from 'react';
-import { X, Trash2, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 const CartDrawer = ({ isOpen, onClose }) => {
-  const { cart, cartCount, addToCart } = useCart();
+  // Pulling everything from context
+  const { cart, cartCount, addToCart, subtotal, removeFromCart } = useCart();
   const navigate = useNavigate();
-
-  const total = cart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
 
   if (!isOpen) return null;
 
@@ -19,63 +18,103 @@ const CartDrawer = ({ isOpen, onClose }) => {
         onClick={onClose}
       ></div>
 
-      {/* Drawer */}
+      {/* Drawer Container */}
       <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slide-left">
-        <div className="p-6 border-b border-earth-100 flex justify-between items-center">
+        
+        {/* Header Section */}
+        <div className="p-6 border-b border-earth-100 flex justify-between items-center bg-white z-10">
           <div className="flex items-center gap-2">
             <ShoppingBag className="text-butcher-700" size={24} />
-            <h2 className="text-xl font-black font-heading">Your Cart ({cartCount})</h2>
+            <h2 className="text-xl font-black font-heading uppercase tracking-tighter">
+              Your Cart ({cartCount})
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-earth-50 rounded-full">
+          <button onClick={onClose} className="p-2 hover:bg-earth-50 rounded-full transition-colors">
             <X size={24} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Scrollable Items List */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {cart.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-earth-400 font-medium">Your basket is empty.</p>
+              <p className="text-earth-400 font-medium italic">Your basket is empty.</p>
               <button 
                 onClick={() => { onClose(); navigate('/products'); }}
-                className="mt-4 text-butcher-700 font-bold underline"
+                className="mt-4 text-butcher-700 font-black uppercase tracking-widest text-xs underline decoration-2 underline-offset-4"
               >
                 Browse Fresh Cuts
               </button>
             </div>
           ) : (
-            cart.map((item) => (
-              <div key={item.id} className="flex gap-4 items-center bg-earth-50 p-4 rounded-3xl border border-earth-100">
-                <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-2xl" />
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm text-earth-900">{item.name}</h3>
-                  <p className="text-[10px] text-butcher-700 font-bold uppercase tracking-widest">
-                    {item.cutType.replace('_', ' ')}
-                  </p>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="font-black text-earth-900">${(item.basePrice * item.quantity).toFixed(2)}</p>
-                    <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-full shadow-sm">
-                      <button onClick={() => addToCart(item, -0.5, item.cutType)}><Minus size={14}/></button>
-                      <span className="text-xs font-bold">{item.quantity}kg</span>
-                      <button onClick={() => addToCart(item, 0.5, item.cutType)}><Plus size={14}/></button>
+            cart.map((item) => {
+              const { id, name, image, price, quantity, cutType } = item;
+              const displayPrice = (Number(price || 0) * quantity).toFixed(2);
+
+              return (
+                <div key={id} className="flex gap-4 items-center bg-earth-50 p-4 rounded-[2rem] border border-earth-100 relative group">
+                  <img src={image} alt={name} className="w-20 h-20 object-cover rounded-2xl shadow-sm" />
+                  
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start pr-2">
+                      <h3 className="font-black text-sm text-earth-900 uppercase tracking-tight leading-none">
+                        {name}
+                      </h3>
+                      {/* Optional: Add a small remove button using Trash2 */}
+                      {removeFromCart && (
+                        <button 
+                          onClick={() => removeFromCart(id)} 
+                          className="text-earth-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                    
+                    <p className="text-[10px] text-butcher-700 font-bold uppercase tracking-widest mt-1">
+                      {cutType ? cutType.replace('_', ' ') : 'Standard Cut'}
+                    </p>
+
+                    <div className="flex justify-between items-center mt-3">
+                      <p className="font-black text-earth-900">${displayPrice}</p>
+                      
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-full shadow-sm border border-earth-100">
+                        <button 
+                          onClick={() => addToCart(item, -0.5, cutType)}
+                          disabled={quantity <= 0.5}
+                          className="text-earth-400 hover:text-butcher-700 disabled:opacity-20 transition-colors"
+                        >
+                          <Minus size={14} strokeWidth={3}/>
+                        </button>
+                        <span className="text-xs font-black min-w-[30px] text-center">{quantity}kg</span>
+                        <button 
+                          onClick={() => addToCart(item, 0.5, cutType)}
+                          className="text-earth-400 hover:text-butcher-700 transition-colors"
+                        >
+                          <Plus size={14} strokeWidth={3}/>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
+        {/* Sticky Footer / Checkout */}
         {cart.length > 0 && (
-          <div className="p-6 glass-card border-t border-white">
+          <div className="p-8 bg-white border-t border-earth-100 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
             <div className="flex justify-between items-center mb-6">
-              <span className="text-earth-400 font-bold uppercase tracking-widest text-xs">Subtotal</span>
-              <span className="text-2xl font-black text-butcher-700">${total.toFixed(2)}</span>
+              <span className="text-earth-400 font-black uppercase tracking-widest text-[10px]">Estimated Total</span>
+              <span className="text-3xl font-black text-butcher-700 font-heading">
+                ${Number(subtotal || 0).toFixed(2)}
+              </span>
             </div>
             <button 
-              className="w-full py-5 bg-earth-900 text-white font-black rounded-2xl shadow-xl hover:bg-butcher-800 transition-all uppercase tracking-widest text-sm"
-              onClick={() => {
-                alert("Proceeding to secure checkout at Bendemeer portal...");
-              }}
+              className="w-full py-5 bg-earth-900 text-white font-black rounded-2xl shadow-xl hover:bg-butcher-800 transition-all active:scale-[0.98] uppercase tracking-widest text-xs"
+              onClick={() => alert("Proceeding to secure checkout at Bendemeer portal...")}
             >
               Checkout Now
             </button>
