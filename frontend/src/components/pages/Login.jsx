@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import cognitoClient from '../api/axiosClient';
-import { useAuth } from '../context/AuthContext'; // Import the global auth hook
+import cognitoClient from '@/api/axiosClient';
+import { useAuth } from '@/context/AuthContext';
 
 const Login = () => {
   const { login } = useAuth(); // Destructure the login function from context

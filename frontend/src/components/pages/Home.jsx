@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Star, MapPin, Loader2, ShoppingCart } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import Navbar from './Navbar';
-import CartDrawer from './CartDrawer';
-import ProductScroll from './ProductScroll';
+import { useCart } from "@/context/CartContext";
+import { Navbar, CartDrawer, ProductScroll } from '@/components/ui';
 import axios from 'axios';
 
 

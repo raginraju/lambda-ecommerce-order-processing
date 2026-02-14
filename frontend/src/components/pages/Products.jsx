@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ShoppingCart, Grid, List, Loader2, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import Navbar from './Navbar';
-import CartDrawer from './CartDrawer';
+import { useCart } from "@/context/CartContext";
+import { Navbar, CartDrawer} from '@/components/ui';
 
 // --- Sub-component: ListViewItem with Dropdown ---
 const ListViewItem = ({ product, onAdd }) => {

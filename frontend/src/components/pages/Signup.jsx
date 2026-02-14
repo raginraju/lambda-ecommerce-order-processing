@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import cognitoClient from '../api/axiosClient'; // Use your centralized client
+import cognitoClient from '@/api/axiosClient';
 
 const Signup = () => {
   const navigate = useNavigate();

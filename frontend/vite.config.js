@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path' // 1. Added this for path resolution
 
 export default defineConfig(({ command, mode }) => {
-  // Check if we are in "development" mode (npm run dev)
   const isDev = command === 'serve';
 
   return {
@@ -11,12 +11,15 @@ export default defineConfig(({ command, mode }) => {
       react(), 
       tailwindcss()
     ],
+    // 2. Added the Alias Configuration
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     server: {
-      // Allow Cloudflare hosts if needed, but also allow localhost
       allowedHosts: ['.trycloudflare.com', 'localhost'], 
       hmr: {
-        // Only use 443 if you are specifically testing the Cloudflare Tunnel
-        // Otherwise, let it use the default port (5173)
         clientPort: mode === 'tunnel' ? 443 : undefined, 
         protocol: mode === 'tunnel' ? 'wss' : 'ws',
       },

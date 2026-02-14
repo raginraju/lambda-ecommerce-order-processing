@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Loader2, AlertTriangle, X, DollarSign, Plus } from 'lucide-react'; // Added Plus
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

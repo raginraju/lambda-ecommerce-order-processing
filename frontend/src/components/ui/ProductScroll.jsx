@@ -1,5 +1,5 @@
 import React from 'react';
-import ProductCard from './ProductCard';
+import {ProductCard } from '@/components/ui';
 
 const ProductScroll = ({ title, subtitle, items = [], onAdd, onViewAll }) => {
   

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useCart } from "../../context/CartContext";
-import { useAuth } from "../../context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from '@/context/AuthContext';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import Navbar from "../Navbar";
-import AddressSection from "./AddressSection";
-import OrderReview from "./OrderReview";
-import OrderSummary from "./OrderSummary";
+import { Navbar } from '@/components/ui';
+import { AddressSection, OrderReview, OrderSummary } from "./";
 
 const Checkout = () => {
   const { cart, subtotal } = useCart();

@@ -1,8 +1,8 @@
 import React, { useState } from 'react'; // Added useState
 import { X, ShoppingBag, Plus, Minus, Trash2, LogIn, ArrowRight } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart } from "@/context/CartContext";
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const { cart, cartCount, addToCart, subtotal, removeFromCart } = useCart();

@@ -1,18 +1,19 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import Home from './components/Home';
-import Products from './components/Products'; 
-import AdminDashboard from './components/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
-import NotFound from './components/NotFound';
-import AdminRoute from './components/AdminRoute';
 
-// Fixed Import: Ensure the path matches your new folder structure
-import Checkout from './components/checkout/Checkout';
+// 1. Context Providers (Update to use @ alias)
+import { CartProvider } from '@/context/CartContext';
+import { AuthProvider } from '@/context/AuthContext';
+
+// 2. Auth & Security Logic
+import { ProtectedRoute, AdminRoute } from '@/components/auth';
+
+// 3. Page Components
+import { Home, Login, Signup, Products, NotFound } from '@/components/pages';
+
+// 4. Feature-Specific Components
+import { AdminDashboard } from '@/components/admin';
+import { Checkout } from '@/components/checkout';
 
 function App() {
   return (

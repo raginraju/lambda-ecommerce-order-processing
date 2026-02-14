@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { useCart } from "@/context/CartContext";
 
 const OrderReview = () => {
   // Accessing the cart state and modifier functions directly from context

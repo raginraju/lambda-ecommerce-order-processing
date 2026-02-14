@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Search, User, LogOut, Settings, ChevronDown, LogIn, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard icon
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from "@/context/CartContext";
+import { useAuth } from '@/context/AuthContext';
 
 const Navbar = ({ onOpenCart }) => {
   const { cartCount } = useCart();
