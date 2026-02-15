@@ -3,7 +3,20 @@ import React, { createContext, useContext, useState } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    const savedCart = localStorage.getItem('shop_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+
+  // 2. Sync cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('shop_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem('shop_cart'); // Explicitly clean up storage
+  };
 
   const addToCart = (product, quantity, cutType) => {
     // Ensure numeric values to prevent $NaN
@@ -64,6 +77,7 @@ export const CartProvider = ({ children }) => {
       cart, 
       addToCart, 
       removeFromCart, 
+      clearCart,
       cartCount, 
       subtotal 
     }}>

@@ -65,6 +65,7 @@ const Checkout = () => {
       const response = await apiClient.post('/orders', orderData);
 
       if (response.status === 200 || response.status === 201) {
+        clearCart();
         toast.dismiss(loadingToast);
         toast.success("Order placed successfully!", { duration: 4000 });
         
