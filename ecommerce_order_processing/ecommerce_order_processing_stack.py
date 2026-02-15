@@ -104,10 +104,10 @@ class PoultryInfraStack(Stack):
         )
 
         # Outputs for the GitHub Actions / Frontend Build
-        CfnOutput(self, "ApiUrl", value=self.api.api_gateway.url)
+        CfnOutput(self, "VITE_API_URL", value=self.api.api_gateway.url)
+        CfnOutput(self, "VITE_CDN_URL", value=f"https://{self.distribution.distribution_domain_name}")
         CfnOutput(self, "UserPoolId", value=self.auth.user_pool.user_pool_id)
         CfnOutput(self, "UserPoolClientId", value=self.auth.user_pool_client.user_pool_client_id)
-        CfnOutput(self, "CloudFrontURL", value=self.distribution.distribution_domain_name)
         CfnOutput(self, "ImagesBucketName", value=self.images_bucket.bucket_name)
 
 # --- STACK 2: DEPLOYMENT (The "Fast" stuff) ---

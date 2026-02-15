@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import cognitoClient from '@/api/axiosClient';
+import { authClient } from '@/api';
 import { useAuth } from '@/context/AuthContext';
 
 const Login = () => {
@@ -20,7 +20,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await cognitoClient.post('/', 
+      const response = await authClient.post('/', 
         {
           AuthFlow: "USER_PASSWORD_AUTH",
           ClientId: ClientId,

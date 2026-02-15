@@ -2,67 +2,90 @@ import json, uuid, boto3, os
 from datetime import datetime
 from decimal import Decimal
 
+# Initialize AWS Resources
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(os.environ['TABLE_NAME'])
 sfn = boto3.client('stepfunctions')
 
 class DecimalEncoder(json.JSONEncoder):
+    """Helper class to convert Decimal objects to JSON for Step Functions/API responses"""
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
-VALID_CUTS = [
-    "WHOLE_CHICKEN", "HALF_CHICKEN", "CURRY_CUT", "BIRYANI_CUT", 
-    "SOUP_BONES", "BREAST_FILLET", "THIGH_FILLET", "TENDERS", 
-    "DRUMSTICKS", "WHOLE_LEGS", "WINGS_FULL", "WINGS_DRUMETTE", 
-    "WINGS_WINGETTE", "LOLLIPOPS"
-]
-
 def handler(event, context):
+    # Standard headers for CORS
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+
     try:
-        user_id = event['requestContext']['authorizer']['claims']['sub']
-        user_email = event['requestContext']['authorizer']['claims']['email']
+        # Extract user info from Cognito Authorizer claims
+        claims = event['requestContext']['authorizer']['claims']
+        user_id = claims['sub']
+        user_email = claims.get('email', 'unknown@example.com')
+        
         body = json.loads(event['body'])
         
-        # 1. Extract Numbers for Calculation
-        weight = Decimal(str(body.get('weight', 0)))
-        price_per_kg = Decimal(str(body.get('price_per_kg', 0)))
-        delivery_charge = Decimal(str(body.get('delivery_charge', 0))) # New Field
-        quantity = int(body.get('quantity', 1))
+        # 1. Extract structured data from frontend payload
+        items_data = body.get('items', [])
+        delivery_info = body.get('delivery_details', {})
+        totals_info = body.get('totals', {})
 
-        # 2. Calculate Subtotal and Final Total
-        subtotal = weight * price_per_kg * quantity
-        total_price = subtotal + delivery_charge
+        # 2. Process Items and calculate subtotal
+        processed_items = []
+        calculated_subtotal = Decimal('0')
 
-        order_id = str(uuid.uuid4())
+        for item in items_data:
+            # Conversion to string first is the safest way to create Decimals in Python
+            weight = Decimal(str(item.get('weight', 0)))
+            price = Decimal(str(item.get('price_per_kg', 0)))
+            qty = int(item.get('quantity', 1))
+            
+            item_total = (weight * price * qty).quantize(Decimal('0.01'))
+            calculated_subtotal += item_total
+            
+            processed_items.append({
+                "cut_type": item.get('cut_type', 'WHOLE_CHICKEN'),
+                "weight_kg": weight,
+                "price_per_kg": price,
+                "quantity": qty,
+                "item_total": item_total
+            })
+
+        # 3. Final Total Calculation
+        delivery_charge = Decimal(str(totals_info.get('delivery_charge', 5.00))).quantize(Decimal('0.01'))
+        final_total = calculated_subtotal + delivery_charge
+
+        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}" # Cleaner Order ID
         order_at = datetime.now().isoformat() 
 
-        # 3. Build the Item
+        # 4. Build the Item for DynamoDB (Matches Composite Key: userId + orderId)
         item = {
-            "userId": user_id,
-            "orderId": order_id,
+            "userId": user_id,           # Partition Key
+            "orderId": order_id,         # Sort Key
             "order_at": order_at,
-            # "email": user_email,
-            # "product_name": "Broiler Chicken",
-            "cut_type": body.get('cut_type'),
-            "weight_kg": weight,
-            "price_per_kg": price_per_kg,
+            "user_email": user_email,
+            "items": processed_items,
+            "subtotal": calculated_subtotal,
             "delivery_charge": delivery_charge,
-            "total_price": total_price,
-            "quantity": quantity,
+            "total_price": final_total,
             "status": "PENDING_PAYMENT",
             
-            # Location
-            "delivery_address": body.get('location'),
-            "postal_code": str(body.get('postal_code')), 
-            "delivery_instructions": body.get('delivery_instructions', 'None')
+            # Delivery Mapping
+            "delivery_location": delivery_info.get('location'),
+            "postal_code": str(delivery_info.get('postal_code')), 
+            "delivery_instructions": delivery_info.get('delivery_instructions', 'None'),
+            "contact_number": delivery_info.get('contact')
         }
 
-        # 4. Save to DynamoDB
+        # 5. Save to DynamoDB
         table.put_item(Item=item)
 
-        # 5. Trigger Step Function
+        # 6. Trigger Step Function (Passing the full item so tasks have user_id/order_id)
         sfn.start_execution(
             stateMachineArn=os.environ['STATE_MACHINE_ARN'],
             input=json.dumps(item, cls=DecimalEncoder)
@@ -70,15 +93,18 @@ def handler(event, context):
 
         return {
             "statusCode": 201,
+            "headers": headers,
             "body": json.dumps({
-                "message": "Order created with delivery",
+                "message": "Bulk order created",
                 "orderId": order_id,
-                "subtotal": subtotal,
-                "delivery": delivery_charge,
-                "total": total_price
+                "total": final_total
             }, cls=DecimalEncoder)
         }
 
     except Exception as e:
-        print(f"Error: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps({"error": "Internal error"})}
+        print(f"Error Processing Order: {str(e)}")
+        return {
+            "statusCode": 500, 
+            "headers": headers,
+            "body": json.dumps({"error": "Internal Server Error", "details": str(e)})
+        }

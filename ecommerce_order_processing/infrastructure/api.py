@@ -54,7 +54,13 @@ class PoultryApi(Construct):
         notify_task = tasks.SnsPublish(
             self, "NotifyCustomer",
             topic=self.notification_topic,
-            message=sfn.TaskInput.from_json_path_at("$.status")
+            message=sfn.TaskInput.from_text(
+                sfn.JsonPath.format(
+                    "Poultry Order Update: {} is now {}.",
+                    sfn.JsonPath.string_at("$.orderId"),
+                    sfn.JsonPath.string_at("$.status")
+                )
+            )
         )
 
         state_machine = sfn.StateMachine(
@@ -115,7 +121,8 @@ class PoultryApi(Construct):
             proxy=False,
             default_cors_preflight_options=apigateway.CorsOptions(
                 allow_origins=["*"], 
-                allow_methods=["GET", "POST", "OPTIONS"]
+                allow_methods=["GET", "POST", "OPTIONS"],
+                allow_headers=["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key"]
             )
         )
         

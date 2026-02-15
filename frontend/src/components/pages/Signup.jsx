@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import cognitoClient from '@/api/axiosClient';
+import { authClient } from '@/api';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ const Signup = () => {
     setLoading(true);
     
     try {
-      // We use the cognitoClient and pass only the specific Target header
-      await cognitoClient.post('/', 
+      // We use the authClient and pass only the specific Target header
+      await authClient.post('/', 
         {
           ClientId: ClientId, 
           Username: email,
