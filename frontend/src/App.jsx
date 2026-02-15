@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 // 1. Context Providers (Update to use @ alias)
 import { CartProvider } from '@/context/CartContext';
@@ -19,6 +20,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
+      <Toaster position="bottom-right" reverseOrder={false} />
         <Router>
           <div className="min-h-screen bg-earth-50">
             <Routes>

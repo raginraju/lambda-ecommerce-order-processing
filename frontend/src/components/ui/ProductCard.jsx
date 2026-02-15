@@ -1,22 +1,47 @@
 import React, { useState } from 'react';
 import { ShoppingCart, ChevronDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const ProductCard = ({ product, onAdd }) => {
-  // Default to the first cut if available, otherwise a standard string
+  // Use the CDN URL from your .env for images
+  const cdnUrl = import.meta.env.VITE_CDN_URL;
+  
   const [selectedCut, setSelectedCut] = useState(
     product.cuts && product.cuts.length > 0 ? product.cuts[0] : "STANDARD_CUT"
   );
+
+  const handleAddToCart = () => {
+    // 1. Execute the add logic
+    onAdd({ ...product }, 1.0, selectedCut);
+
+    // 2. Trigger the success toast
+    toast.success(`${product.name} added to cart!`, {
+      style: {
+        borderRadius: '1rem',
+        background: '#1c1917', // Match your earth-900 theme
+        color: '#fff',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        textTransform: 'uppercase'
+      },
+      iconTheme: {
+        primary: '#b91c1c', // Butcher-700 red
+        secondary: '#fff',
+      },
+    });
+  };
 
   const hasCuts = product.cuts && product.cuts.length > 0;
 
   return (
     <div className="w-64 shrink-0 glass-card rounded-[2rem] p-5 bg-white shadow-xl border-white hover:scale-[1.02] transition-transform flex flex-col">
-      {/* Product Image */}
+      {/* Product Image - Updated to use CDN */}
       <div className="relative h-40 w-full mb-4 overflow-hidden rounded-2xl shadow-inner">
         <img 
-          src={product.image} 
+          src={`${cdnUrl}${product.image}`} 
           alt={product.name} 
           className="w-full h-full object-cover"
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/300?text=Poultry+Image'; }}
         />
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg text-[8px] font-black uppercase text-earth-900 shadow-sm">
           {product.category || 'Premium'}
@@ -29,7 +54,6 @@ const ProductCard = ({ product, onAdd }) => {
           {product.name}
         </h3>
         
-        {/* Conditional Dropdown for Cuts */}
         {hasCuts ? (
           <div className="relative mt-2">
             <select 
@@ -62,7 +86,7 @@ const ProductCard = ({ product, onAdd }) => {
         </div>
         
         <button 
-          onClick={() => onAdd({ ...product }, 1.0, selectedCut)}
+          onClick={handleAddToCart}
           className="bg-earth-900 text-white p-3.5 rounded-2xl shadow-lg active:scale-90 transition-all hover:bg-butcher-800"
         >
           <ShoppingCart size={18} strokeWidth={2.5} />
@@ -71,5 +95,5 @@ const ProductCard = ({ product, onAdd }) => {
     </div>
   );
 };
-
+ 
 export default ProductCard;
