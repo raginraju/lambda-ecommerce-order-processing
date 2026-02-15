@@ -12,7 +12,9 @@ class PoultryDatabase(Construct):
             sort_key=dynamodb.Attribute(name="orderId", type=dynamodb.AttributeType.STRING),
             removal_policy=RemovalPolicy.DESTROY,
             # Enabling point-in-time recovery is good practice for orders
-            point_in_time_recovery=True 
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            )
         )
 
         # 2. Products Table (The "Master Record" for prices)

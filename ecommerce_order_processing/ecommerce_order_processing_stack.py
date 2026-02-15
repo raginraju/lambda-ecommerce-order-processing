@@ -104,8 +104,15 @@ class PoultryInfraStack(Stack):
         )
 
         # Outputs for the GitHub Actions / Frontend Build
-        CfnOutput(self, "VITE_API_URL", value=self.api.api_gateway.url)
-        CfnOutput(self, "VITE_CDN_URL", value=f"https://{self.distribution.distribution_domain_name}")
+        CfnOutput(self, "ViteApiUrlOutput", 
+            value=self.api.api_gateway.url, 
+            export_name="VITE-API-URL"
+        )
+
+        CfnOutput(self, "ViteCdnUrlOutput", 
+            value=f"https://{self.distribution.domain_name}",
+            export_name="VITE-CDN-URL" 
+        )       
         CfnOutput(self, "UserPoolId", value=self.auth.user_pool.user_pool_id)
         CfnOutput(self, "UserPoolClientId", value=self.auth.user_pool_client.user_pool_client_id)
         CfnOutput(self, "ImagesBucketName", value=self.images_bucket.bucket_name)

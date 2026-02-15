@@ -5,7 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from "@/context/CartContext";
 import { Navbar, CartDrawer} from '@/components/ui';
 
-// --- Sub-component: ListViewItem with Dropdown ---
+// 1. Global CDN Config (handles trailing slash safety)
+const CDN_URL = import.meta.env.VITE_CDN_URL?.replace(/\/$/, '') || '';
+console.log("vite env VITE_CDN_URL:", import.meta.env.VITE_CDN_URL);
+console.log("Using CDN URL:", CDN_URL);
+
+// --- Sub-component: ListViewItem ---
 const ListViewItem = ({ product, onAdd }) => {
   const [selectedCut, setSelectedCut] = useState(
     product.cuts && product.cuts.length > 0 ? product.cuts[0] : "STANDARD_CUT"
@@ -14,9 +19,10 @@ const ListViewItem = ({ product, onAdd }) => {
   return (
     <div className="flex items-center gap-4 bg-white p-4 rounded-[1.8rem] shadow-sm border border-white hover:shadow-md transition-all active:scale-[0.98]">
       <img 
-        src={product.image} 
+        src={`${CDN_URL}${product.image}`} 
         className="w-20 h-20 object-cover rounded-2xl shrink-0 shadow-sm" 
         alt={product.name} 
+        onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }}
       />
       <div className="flex-grow">
         <div className="flex items-center gap-2">
@@ -24,7 +30,6 @@ const ListViewItem = ({ product, onAdd }) => {
           <span className="text-[8px] bg-earth-100 px-2 py-0.5 rounded-full font-bold text-earth-500 uppercase">{product.category}</span>
         </div>
         
-        {/* Dropdown for List View */}
         {product.cuts && product.cuts.length > 0 && (
           <select 
             value={selectedCut}
@@ -37,7 +42,7 @@ const ListViewItem = ({ product, onAdd }) => {
           </select>
         )}
         
-        <p className="text-butcher-700 font-black text-lg mt-1">${product.price}<span className="text-[10px] text-earth-400 ml-1">/kg</span></p>
+        <p className="text-butcher-700 font-black text-lg mt-1">${Number(product.price).toFixed(2)}<span className="text-[10px] text-earth-400 ml-1">/kg</span></p>
       </div>
       <button 
         onClick={() => onAdd(product, 1.0, selectedCut)}
@@ -45,6 +50,60 @@ const ListViewItem = ({ product, onAdd }) => {
       >
         <ShoppingCart size={18} strokeWidth={2.5} />
       </button>
+    </div>
+  );
+};
+
+// --- Sub-component: GridCard ---
+const GridCard = ({ product, onAdd }) => {
+  const [selectedCut, setSelectedCut] = useState(
+    product.cuts && product.cuts.length > 0 ? product.cuts[0] : "STANDARD_CUT"
+  );
+
+  return (
+    <div className="glass-card rounded-[2.5rem] p-6 bg-white shadow-xl border-white hover:scale-[1.02] transition-all duration-300 group">
+      <div className="relative h-56 w-full mb-6 overflow-hidden rounded-[1.8rem] shadow-inner">
+        <img 
+          src={`${CDN_URL}${product.image}`} 
+          alt={product.name} 
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/300?text=No+Image'; }}
+        />
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase text-earth-900 shadow-sm">
+          {product.category}
+        </div>
+      </div>
+      
+      {product.cuts && product.cuts.length > 0 && (
+        <div className="relative mb-4">
+          <select 
+            value={selectedCut}
+            onChange={(e) => setSelectedCut(e.target.value)}
+            className="w-full bg-earth-50 border border-earth-100 text-[10px] font-bold uppercase tracking-widest py-2 px-3 rounded-xl appearance-none cursor-pointer focus:outline-none"
+          >
+            {product.cuts.map(cut => (
+              <option key={cut} value={cut}>{cut.replace('_', ' ')}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 pointer-events-none" />
+        </div>
+      )}
+
+      <div className="flex justify-between items-end">
+        <div>
+          <h3 className="font-black uppercase tracking-tight text-xl text-earth-900 mb-1">{product.name}</h3>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-black text-butcher-700">${Number(product.price).toFixed(2)}</span>
+            <span className="text-[10px] font-bold text-earth-400 uppercase">/kg</span>
+          </div>
+        </div>
+        <button 
+          onClick={() => onAdd(product, 1.0, selectedCut)}
+          className="bg-earth-900 text-white p-5 rounded-[1.5rem] shadow-2xl active:scale-90 transition-all hover:bg-butcher-800"
+        >
+          <ShoppingCart size={20} strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   );
 };
@@ -58,12 +117,12 @@ const Products = () => {
   
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const cdnUrl = import.meta.env.VITE_CDN_URL || '';
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const response = await axios.get(`${cdnUrl}/data/products.json`);
+        // Fetch products.json from S3 via CDN
+        const response = await axios.get(`${CDN_URL}/data/products.json`);
         const data = Array.isArray(response.data) ? response.data : response.data?.products;
         setProducts(data || []);
       } catch (error) {
@@ -73,16 +132,16 @@ const Products = () => {
       }
     };
     fetchAll();
-  }, [cdnUrl]);
+  }, []);
 
-  // Clean and add to cart logic
   const handleAddToCart = (product, qty, cut) => {
     const safePrice = Number(product.price) || 0;
     const cleanProduct = {
       ...product,
       price: safePrice,
       name: product.name || "Unknown Cut",
-      image: product.image || "https://via.placeholder.com/150"
+      // Store the image with the CDN prefix in the cart for consistency
+      image: `${CDN_URL}${product.image}` 
     };
     addToCart(cleanProduct, qty, cut);
   };
@@ -92,7 +151,6 @@ const Products = () => {
       <Navbar onOpenCart={() => setIsCartOpen(true)} />
       
       <div className="px-6 py-8 max-w-7xl mx-auto">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <button onClick={() => navigate('/')} className="flex items-center gap-2 text-earth-400 font-bold text-[10px] uppercase tracking-widest mb-2 hover:text-butcher-700 transition-colors">
@@ -130,56 +188,6 @@ const Products = () => {
       </div>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-    </div>
-  );
-};
-
-// --- Sub-component: GridCard with Dropdown ---
-const GridCard = ({ product, onAdd }) => {
-  const [selectedCut, setSelectedCut] = useState(
-    product.cuts && product.cuts.length > 0 ? product.cuts[0] : "STANDARD_CUT"
-  );
-
-  return (
-    <div className="glass-card rounded-[2.5rem] p-6 bg-white shadow-xl border-white hover:scale-[1.02] transition-all duration-300 group">
-      <div className="relative h-56 w-full mb-6 overflow-hidden rounded-[1.8rem] shadow-inner">
-        <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase text-earth-900 shadow-sm">
-          {product.category}
-        </div>
-      </div>
-      
-      {/* Grid View Dropdown */}
-      {product.cuts && product.cuts.length > 0 && (
-        <div className="relative mb-4">
-          <select 
-            value={selectedCut}
-            onChange={(e) => setSelectedCut(e.target.value)}
-            className="w-full bg-earth-50 border border-earth-100 text-[10px] font-bold uppercase tracking-widest py-2 px-3 rounded-xl appearance-none cursor-pointer focus:outline-none"
-          >
-            {product.cuts.map(cut => (
-              <option key={cut} value={cut}>{cut.replace('_', ' ')}</option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 pointer-events-none" />
-        </div>
-      )}
-
-      <div className="flex justify-between items-end">
-        <div>
-          <h3 className="font-black uppercase tracking-tight text-xl text-earth-900 mb-1">{product.name}</h3>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-black text-butcher-700">${product.price}</span>
-            <span className="text-[10px] font-bold text-earth-400 uppercase">/kg</span>
-          </div>
-        </div>
-        <button 
-          onClick={() => onAdd(product, 1.0, selectedCut)}
-          className="bg-earth-900 text-white p-5 rounded-[1.5rem] shadow-2xl active:scale-90 transition-all hover:bg-butcher-800"
-        >
-          <ShoppingCart size={20} strokeWidth={2.5} />
-        </button>
-      </div>
     </div>
   );
 };
