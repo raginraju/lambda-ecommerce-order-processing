@@ -10,7 +10,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ProtectedRoute, AdminRoute } from '@/components/auth';
 
 // 3. Page Components
-import { Home, Login, Signup, Products, NotFound } from '@/components/pages';
+import { Home, Login, Signup, Products, Orders, NotFound } from '@/components/pages';
 
 // 4. Feature-Specific Components
 import { AdminDashboard } from '@/components/admin';
@@ -31,6 +31,16 @@ function App() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/products" element={<Products />} />
 
+              {/* Protected Route: Orders (History) */}
+              <Route 
+                path="/orders" 
+                element={
+                  <ProtectedRoute>
+                    <Orders />
+                  </ProtectedRoute>
+                } 
+              />
+              
               {/* Protected Route: Checkout */}
               <Route 
                 path="/checkout" 

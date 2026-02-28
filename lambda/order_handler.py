@@ -22,6 +22,10 @@ def handler(event, context):
         "Access-Control-Allow-Methods": "OPTIONS,POST"
     }
 
+    # Handle OPTIONS request (CORS preflight)
+    if event.get('httpMethod') == 'OPTIONS':
+        return {"statusCode": 200, "headers": headers, "body": ""}
+
     try:
         # Extract user info from Cognito Authorizer claims
         claims = event['requestContext']['authorizer']['claims']
@@ -40,67 +44,79 @@ def handler(event, context):
         calculated_subtotal = Decimal('0')
 
         for item in items_data:
-            # Conversion to string first is the safest way to create Decimals in Python
-            weight = Decimal(str(item.get('weight', 0)))
-            price = Decimal(str(item.get('price_per_kg', 0)))
-            qty = int(item.get('quantity', 1))
+            # Matches your CartContext keys: 'price' and 'quantity'
+            qty = Decimal(str(item.get('quantity', 1)))
+            price = Decimal(str(item.get('price', 0)))
             
-            item_total = (weight * price * qty).quantize(Decimal('0.01'))
+            item_total = (qty * price).quantize(Decimal('0.01'))
             calculated_subtotal += item_total
             
             processed_items.append({
-                "cut_type": item.get('cut_type', 'WHOLE_CHICKEN'),
-                "weight_kg": weight,
-                "price_per_kg": price,
+                "product_id": item.get('id'),
+                "name": item.get('name', 'Unknown Item'),
+                "cutType": item.get('cutType', 'STANDARD_CUT'),
+                "price_per_unit": price,
                 "quantity": qty,
-                "item_total": item_total
+                "item_total": item_total,
+                "image": item.get('image', '')
             })
 
-        # 3. Final Total Calculation
+        # 4. Final Total Calculation
+        # Default delivery to 5.00 if not provided
         delivery_charge = Decimal(str(totals_info.get('delivery_charge', 5.00))).quantize(Decimal('0.01'))
         final_total = calculated_subtotal + delivery_charge
 
-        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}" # Cleaner Order ID
-        order_at = datetime.now().isoformat() 
+        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        timestamp = datetime.now().isoformat() 
 
-        # 4. Build the Item for DynamoDB (Matches Composite Key: userId + orderId)
-        item = {
+        # 5. Build the Item for DynamoDB
+        # Using 'createdAt' to match the frontend Orders.jsx sorting logic
+        order_item = {
             "userId": user_id,           # Partition Key
             "orderId": order_id,         # Sort Key
-            "order_at": order_at,
+            "createdAt": timestamp,      # Used for frontend display
             "user_email": user_email,
             "items": processed_items,
             "subtotal": calculated_subtotal,
             "delivery_charge": delivery_charge,
-            "total_price": final_total,
+            "total": final_total,        # Match frontend 'order.total'
             "status": "PENDING_PAYMENT",
             
             # Delivery Mapping
-            "delivery_location": delivery_info.get('location'),
-            "postal_code": str(delivery_info.get('postal_code')), 
+            "delivery_location": delivery_info.get('location', 'N/A'),
+            "postal_code": str(delivery_info.get('postal_code', '')), 
             "delivery_instructions": delivery_info.get('delivery_instructions', 'None'),
-            "contact_number": delivery_info.get('contact')
+            "contact_number": delivery_info.get('contact', 'N/A')
         }
 
-        # 5. Save to DynamoDB
-        table.put_item(Item=item)
+        # 6. Save to DynamoDB
+        table.put_item(Item=order_item)
 
-        # 6. Trigger Step Function (Passing the full item so tasks have user_id/order_id)
-        sfn.start_execution(
-            stateMachineArn=os.environ['STATE_MACHINE_ARN'],
-            input=json.dumps(item, cls=DecimalEncoder)
-        )
+        # 7. Trigger Step Function (Workflow for Payment/Email/Inventory)
+        if os.environ.get('STATE_MACHINE_ARN'):
+            sfn.start_execution(
+                stateMachineArn=os.environ['STATE_MACHINE_ARN'],
+                input=json.dumps(order_item, cls=DecimalEncoder)
+            )
 
+        # 8. Success Response
         return {
             "statusCode": 201,
             "headers": headers,
             "body": json.dumps({
-                "message": "Bulk order created",
+                "message": "Order created successfully",
                 "orderId": order_id,
                 "total": final_total
             }, cls=DecimalEncoder)
         }
 
+    except KeyError as e:
+        print(f"Auth Error: Missing claim {str(e)}")
+        return {
+            "statusCode": 401,
+            "headers": headers,
+            "body": json.dumps({"error": "Unauthorized", "details": "Missing user identity"})
+        }
     except Exception as e:
         print(f"Error Processing Order: {str(e)}")
         return {

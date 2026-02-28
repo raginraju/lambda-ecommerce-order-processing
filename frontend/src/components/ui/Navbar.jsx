@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShoppingCart, Search, User, LogOut, Settings, ChevronDown, LogIn, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard icon
+import { 
+  ShoppingCart, 
+  Search, 
+  User, 
+  LogOut, 
+  Settings, 
+  ChevronDown, 
+  LogIn, 
+  LayoutDashboard,
+  ReceiptText // Icon for Orders
+} from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from "@/context/CartContext";
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +21,6 @@ const Navbar = ({ onOpenCart }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -38,12 +47,26 @@ const Navbar = ({ onOpenCart }) => {
       </div>
       
       {/* Actions Section */}
-      <div className="flex gap-3 items-center">
-        <Search size={20} className="text-earth-400 cursor-not-allowed hidden sm:block" />
+      <div className="flex gap-1 sm:gap-3 items-center">
+        <Search size={20} className="text-earth-400 cursor-not-allowed hidden sm:block mr-2" />
         
-        {/* Cart Icon */}
+        {/* 1. ORDERS ICON (Stand-alone, only if logged in) */}
+        {isAuthenticated && (
+          <button 
+            onClick={() => navigate('/orders')}
+            className="relative p-2 text-earth-900 hover:scale-110 transition-transform flex items-center gap-1 group"
+            title="My Orders"
+          >
+            <ReceiptText size={22} />
+            <span className="hidden lg:inline text-[10px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+              Orders
+            </span>
+          </button>
+        )}
+
+        {/* 2. CART ICON */}
         <div 
-          className="relative cursor-pointer hover:scale-110 transition-transform p-2" 
+          className="relative cursor-pointer hover:scale-110 transition-transform p-2 mr-1" 
           onClick={onOpenCart}
         >
           <ShoppingCart size={22} className="text-earth-900" />
@@ -54,7 +77,7 @@ const Navbar = ({ onOpenCart }) => {
           )}
         </div>
 
-        {/* AUTH CONDITIONAL RENDERING */}
+        {/* AUTH SECTION */}
         {isAuthenticated ? (
           <div className="relative" ref={dropdownRef}>
             <button 
@@ -70,14 +93,12 @@ const Navbar = ({ onOpenCart }) => {
             {isProfileOpen && (
               <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-earth-100 py-2 z-[60] animate-in fade-in zoom-in duration-200 origin-top-right">
                 <div className="px-4 py-2 border-b border-earth-50 mb-1">
-                  {/* DYNAMIC LABEL: Shows 'Admin' if the user is in the group */}
                   <p className="text-[10px] font-bold text-butcher-600 uppercase tracking-widest">
                     {user?.isAdmin ? 'Administrator' : 'Customer'}
                   </p>
                   <p className="text-sm font-black text-earth-900 truncate">{user?.name || 'GUEST'}</p>
                 </div>
 
-                {/* 1. SECRET ADMIN LINK: Only visible if isAdmin is true */}
                 {user?.isAdmin && (
                   <button 
                     onClick={() => { navigate('/admin'); setIsProfileOpen(false); }}
