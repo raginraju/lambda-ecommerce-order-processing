@@ -12,13 +12,23 @@ dynamodb = boto3.resource('dynamodb') # Added DynamoDB Resource
 # Config from Environment Variables
 BUCKET_NAME = os.environ.get('PRODUCTS_BUCKET_NAME')
 DISTRIBUTION_ID = os.environ.get('CLOUDFRONT_DISTRIBUTION_ID')
-TABLE_NAME = os.environ.get('PRODUCTS_TABLE_NAME') # Added Table Name
+TABLE_NAME = os.environ.get('PRODUCTS_TABLE_NAME')
+
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'OPTIONS,POST',
+    'Content-Type': 'application/json'
+}
 
 def lambda_handler(event, context):
     """
     Handles daily price updates for The Block.
     Verifies Admin group membership, saves to S3, and clears CloudFront cache.
     """
+    if event.get('httpMethod') == 'OPTIONS':
+        return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
     try:
         # 1. Identity & Role Verification
         authorizer = event.get('requestContext', {}).get('authorizer', {})
@@ -28,7 +38,7 @@ def lambda_handler(event, context):
         if "Admins" not in user_groups:
             return {
                 'statusCode': 403,
-                'headers': get_cors_headers(),
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'message': 'Access Denied: Admin privileges required'})
             }
 
@@ -37,7 +47,7 @@ def lambda_handler(event, context):
         products = body.get('products')
 
         if not products or not isinstance(products, list):
-            return { 'statusCode': 400, 'headers': get_cors_headers(), 'body': json.dumps({'message': 'Invalid Payload'}) }
+            return { 'statusCode': 400, 'headers': CORS_HEADERS, 'body': json.dumps({'message': 'Invalid Payload'}) }
 
         # 3. SAVE TO DYNAMODB (The missing piece)
         table = dynamodb.Table(TABLE_NAME)
@@ -80,7 +90,7 @@ def lambda_handler(event, context):
 
         return {
             'statusCode': 200,
-            'headers': get_cors_headers(),
+            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'message': 'Pricing updated and CDN cache invalidated.',
                 'admin': claims.get('email'),
@@ -92,15 +102,7 @@ def lambda_handler(event, context):
         print(f"Critical Error: {str(e)}")
         return {
             'statusCode': 500,
-            'headers': get_cors_headers(),
+            'headers': CORS_HEADERS,
             'body': json.dumps({'message': f'Server Error: {str(e)}'})
         }
 
-def get_cors_headers():
-    # In production, replace '*' with your specific CloudFront URL
-    return {
-        'Access-Control-Allow-Origin': '*', 
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'OPTIONS,POST',
-        'Content-Type': 'application/json'
-    }

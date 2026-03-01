@@ -11,7 +11,16 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    "Access-Control-Allow-Methods": "OPTIONS,GET"
+}
+
 def handler(event, context):
+    if event.get('httpMethod') == 'OPTIONS':
+        return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
     try:
         user_id = event['requestContext']['authorizer']['claims']['sub']
         
@@ -34,6 +43,7 @@ def handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": CORS_HEADERS,
             "body": json.dumps({
                 "count": response['Count'],
                 "orders": response['Items']
@@ -41,4 +51,4 @@ def handler(event, context):
         }
     except Exception as e:
         print(f"Error: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps({"error": "Failed to list orders"})}
+        return {"statusCode": 500, "headers": CORS_HEADERS, "body": json.dumps({"error": "Failed to list orders"})}
